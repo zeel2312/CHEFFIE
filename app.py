@@ -1,7 +1,8 @@
 from flask import Flask, render_template, request
 from meal_planner import load_fridge, save_fridge, build_meal_plan, complete_meal_plan_with_llm
 from cbr_retrieval import load_recipes
-import json
+import json, os
+
 
 app = Flask(__name__)
 recipes = load_recipes()
@@ -91,4 +92,5 @@ def home():
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
