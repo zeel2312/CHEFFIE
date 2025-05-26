@@ -1,4 +1,4 @@
-# MealPlanner – AI-Augmented Meal Planning with CBR and RAG
+# CHEFFIE: Case-based Healthy Eating Framework for Food Inspiration and Evaluation
 
 MealPlanner is an intelligent system that assists users in planning meals tailored to their dietary goals and available ingredients. By combining **Case-Based Reasoning (CBR)** with **Retrieval Augmented Generation (RAG)**, MealPlanner suggests personalized daily meal plans, manages inventory from a virtual fridge, and proposes additional meals based on what's missing.
 
