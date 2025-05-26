@@ -8,9 +8,20 @@ from cbr_retrieval import load_recipes, rank_recipes
 from llm import call_llm_for_meal_completion
 
 # Fridge Management
+# def load_fridge(path="data/fridge.json"):
+#     with open(path, "r") as f:
+#         return json.load(f)
 def load_fridge(path="data/fridge.json"):
-    with open(path, "r") as f:
-        return json.load(f)
+    try:
+        with open(path, "r") as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        # If fridge.json doesn't exist or is invalid, load default template
+        with open("data/default_fridge.json", "r") as f:
+            default_fridge = json.load(f)
+            # Save the default template as the new fridge.json
+            save_fridge(default_fridge, path)
+            return default_fridge
 
 def save_fridge(fridge, path="data/fridge.json"):
     # print("Saving fridge to:", os.path.abspath(path))

@@ -20,22 +20,42 @@ def home():
         action = request.form.get("action")
 
         # ---------- save_fridge ONLY ---------------------------------
+        # if action == "save_fridge":
+        #     updated_fridge = {}
+        #     for key, val in request.form.items():
+        #         if key.startswith("fridge_"):
+        #             ingredient = key.replace("fridge_", "").lower()
+        #             try:
+        #                 grams = float(val)
+        #                 if grams > 0:
+        #                     updated_fridge[ingredient] = grams
+        #             except ValueError:
+        #                 pass
+        #     save_fridge(updated_fridge)  # Save fridge contents only in this action
+        #     fridge = updated_fridge  # Update fridge data in memory
+        #     return render_template("home.html", fridge=fridge, preferences=preferences,
+        #                            selected_meals=selected_meals, pending_meals=pending_meals,
+        #                            missing_ingredients=missing_ingredients, proposed_meals=proposed_meals)
         if action == "save_fridge":
-            updated_fridge = {}
+            # Load default template first
+            with open("data/default_fridge.json", "r") as f:
+                updated_fridge = json.load(f)
+            
+            # Update only the values that were changed
             for key, val in request.form.items():
                 if key.startswith("fridge_"):
                     ingredient = key.replace("fridge_", "").lower()
                     try:
                         grams = float(val)
-                        if grams > 0:
-                            updated_fridge[ingredient] = grams
+                        updated_fridge[ingredient] = grams  # Keep the ingredient even if 0
                     except ValueError:
                         pass
-            save_fridge(updated_fridge)  # Save fridge contents only in this action
-            fridge = updated_fridge  # Update fridge data in memory
+            
+            save_fridge(updated_fridge)
+            fridge = updated_fridge
             return render_template("home.html", fridge=fridge, preferences=preferences,
-                                   selected_meals=selected_meals, pending_meals=pending_meals,
-                                   missing_ingredients=missing_ingredients, proposed_meals=proposed_meals)
+                                selected_meals=selected_meals, pending_meals=pending_meals,
+                                missing_ingredients=missing_ingredients, proposed_meals=proposed_meals)
 
         # ---------- plan_meals ---------------------------------------
         elif action == "plan_meals":
@@ -59,6 +79,9 @@ def home():
                 },
                 "priority": priority
             }
+            
+            # Check if there are any ingredients in the fridge
+            has_ingredients = any(amount > 0 for amount in fridge.values())
 
             # Build meal plan using the existing fridge data
             selected_meals, pending_meals, missing_ingredients = build_meal_plan(recipes, fridge, preferences)
@@ -68,12 +91,13 @@ def home():
             total_needed = days * meals_per_day
             if len(selected_meals) < total_needed:
                 meals_needed = total_needed - len(selected_meals)
-                proposed_meals = complete_meal_plan_with_llm(
-                    preferences,
-                    fridge,
-                    selected_meals,
-                    missing_ingredients,
-                    meals_needed
+                if has_ingredients:
+                    proposed_meals = complete_meal_plan_with_llm(
+                        preferences,
+                        fridge,
+                        selected_meals,
+                        missing_ingredients,
+                        meals_needed
                 )
 
             # Pass preferences and selected meals back to the frontend so the form is not reset
@@ -94,3 +118,4 @@ def home():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
+    # app.run(debug=True)
