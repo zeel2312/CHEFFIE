@@ -1,13 +1,13 @@
 # CHEFFIE: Case-based Healthy Eating Framework for Food Inspiration and Evaluation
 
-MealPlanner is an intelligent system that assists users in planning meals tailored to their dietary goals and available ingredients. By combining **Case-Based Reasoning (CBR)** with **Retrieval Augmented Generation (RAG)**, MealPlanner suggests personalized daily meal plans, manages inventory from a virtual fridge, and proposes additional meals based on what's missing.
+CHEFFIE is an intelligent system that assists users in planning meals tailored to their dietary goals and available ingredients. By combining **Case-Based Reasoning (CBR)** with **Retrieval Augmented Generation (RAG)**, CHEFFIE suggests personalized daily meal plans, manages inventory from a virtual fridge, and proposes additional meals based on what's missing.
 
 
 ## Description
 
-MealPlanner uses a hybrid approach of knowledge-based AI. It first employs a **CBR system** that retrieves and adjusts past recipes based on user preferences and ingredient availability. If the fridge does not contain enough items to generate a complete plan, a **language model** steps in to suggest feasible alternatives using the remaining fridge data and missing ingredients.
+CHEFFIE uses a hybrid approach of knowledge-based AI. It first employs a **CBR system** that retrieves and adjusts past recipes based on user preferences and ingredient availability. If the fridge does not contain enough items to generate a complete plan, a **language model** steps in to suggest feasible alternatives using the remaining fridge data and missing ingredients.
 
-This makes MealPlanner ideal for users aiming to follow specific nutritional goals (e.g., calories, protein, fat, carbs) while reducing food waste by maximizing existing inventory usage.
+This makes CHEFFIE ideal for users aiming to follow specific nutritional goals (e.g., calories, protein, fat, carbs) while reducing food waste by maximizing existing inventory usage.
 
 
 ## Getting Started
