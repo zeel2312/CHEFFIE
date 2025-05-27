@@ -1,445 +1,826 @@
-<!doctype html>
+<!DOCTYPE html>
 <html>
-<head>
-  <title>Assistant Chefie Meal Planner</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-  <style>
-    /* Card styles */
-    .card, .scrollable-card {
-      background-color: white;
-      border-radius: 12px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-      padding: 20px;
-      margin-bottom: 30px;
-    }
-
-    .scrollable-card {
-      max-height: 400px;
-      overflow-y: auto;
-    }
-
-    /* Expand/Collapse Button */
-    .day-block {
-      margin-top: 20px;
-      background-color: #eef6fb;
-      border-radius: 10px;
-      padding: 10px;
-    }
-
-    .day-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      cursor: pointer;
-      background-color: #d9ebf8;
-      padding: 10px;
-      border-radius: 8px;
-    }
-
-    .meals-container {
-      display: none;
-      margin-top: 10px;
-    }
-
-    .meal-card {
-      background-color: #f8f9fa;
-      padding: 15px;
-      margin-top: 10px;
-      border-radius: 10px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
-    }
-
-    /* Page */
-    body {
-      font-family: 'Helvetica Neue', sans-serif;
-      background-color: #f2f5f7;
-      margin: 0;
-      padding: 20px;
-      color: #333;
-    }
-
-    .container {
-      max-width: 1000px;
-      margin: auto;
-      padding: 20px;
-    }
-
-    input[type="text"],
-    input[type="number"],
-    input[type="submit"] {
-      width: 100%;
-      padding: 10px;
-      margin-top: 5px;
-      margin-bottom: 15px;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      box-sizing: border-box;
-    }
-
-    input[type="submit"] {
-      background-color: #3498db;
-      color: white;
-      font-weight: bold;
-      border: none;
-      cursor: pointer;
-      transition: background-color 0.3s;
-    }
-
-    input[type="submit"]:hover {
-      background-color: #2980b9;
-    }
-
-    label {
-      font-weight: bold;
-    }
-  </style>
-  <script>
-    // Expand/Collapse Logic
-    function toggleMeals(dayId) {
-      var mealsContainer = document.getElementById(dayId);
-      if (mealsContainer.style.display === "none" || mealsContainer.style.display === "") {
-        mealsContainer.style.display = "block";
-      } else {
-        mealsContainer.style.display = "none";
+  <head>
+    <title>Assistant Chefie Meal Planner</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='style.css') }}"
+    />
+    <style>
+      /* Base styles */
+      body {
+        font-family: "Helvetica Neue", sans-serif;
+        background-color: #f2f5f7;
+        margin: 0;
+        padding: 0;
+        color: #333;
+        height: 100vh;
+        overflow: hidden;
+        display: flex; /* Use flexbox to allow main-container to fill body */
+        flex-direction: column;
       }
-    }
-  </script>
-</head>
 
-<body>
+      .main-container {
+        display: grid;
+        grid-template-columns: 2fr 3fr; /* Two columns: Left 2 parts, Right 3 parts */
+        grid-template-rows: auto 1fr; /* Title row (auto), content area (fills remaining space) */
+        gap: 20px;
+        flex-grow: 1; /* Allow main-container to fill body height */
+        padding: 20px;
+        box-sizing: border-box;
+        min-height: 0; /* Allow grid container to shrink */
+      }
 
+      .page-title {
+        grid-column: 1 / -1; /* Span across both columns */
+        text-align: center;
+        margin: 0 0 20px 0;
+      }
 
-<div class="container">
-  <h1>Assistant Cheffie Meal Planner 🍳</h1>
+      .content-grid {
+        grid-column: 1 / -1; /* Span across both columns in main-container */
+        grid-row: 2 / 3; /* Place in the second row of main-container */
+        display: grid;
+        grid-template-columns: 2fr 3fr; /* Define the two content columns */
+        gap: 20px;
+        height: 100%; /* Fill the height of the parent (main-container's 1fr row) */
+        min-height: 0;
+      }
 
-    <!-- =============  A.  FRIDGE  ========================= -->
-    <form method="POST" style="margin-bottom:25px">
-      <input type="hidden" name="action" value="save_fridge">
+      /* Left Section - Fridge Contents */
+      .left-section {
+        grid-column: 1 / 2; /* Place in the first column of content-grid */
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        overflow-y: auto; /* Make the left section directly scrollable */
+        background-color: white; /* Apply card styles directly */
+        border-radius: 12px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        padding: 0; /* Remove padding from container */
+        box-sizing: border-box;
+      }
 
-      <div class="scrollable-card">
-        <h2>🧊 Fridge Contents</h2>
-        <p>Edit the amounts (grams) or leave empty if unavailable.</p>
-      
-        {% for ingredient, amount in fridge.items() %}
-          <div>
-            <label>
-              {{ ingredient.capitalize() }}
-              {% if ingredient in ['milk', 'coconut milk'] %}
-                (ml)
-              {% elif ingredient in ['bread', 'eggs'] %}
-                {% if ingredient == 'bread' %}
-                  (slices)
-                {% else %}
-                  (pieces)
-                {% endif %}
-              {% else %}
-                (g)
-              {% endif %}
-            </label>
-            <input  type="number"
-                    name="fridge_{{ ingredient }}"
-                    value="{{ amount }}"
-                    step="1" min="0"
-                    {% if ingredient in ['bread', 'eggs'] %}
-                    step="1"
-                    {% else %}
-                    step="0.1"
-                    {% endif %}>
-          </div>
-        {% endfor %}
-      
-        <div style="display: flex; gap: 10px; margin-top: 10px;">
-          <button type="submit"
-                  style="flex: 1; padding: 10px;
-                        background:#3498db;color:#fff;border:none;border-radius:8px;
-                        font-weight:bold;cursor:pointer">
-            💾 Save Fridge Contents
-          </button>
-          
-          <button type="button"
-                  onclick="resetFridge()"
-                  style="flex: 1; padding: 10px;
-                        background:#e74c3c;color:#fff;border:none;border-radius:8px;
-                        font-weight:bold;cursor:pointer">
-            🔄 Reset to Default
-          </button>
-        </div>
-      </div>
-    </form>
-    <!-- ==================================================== -->
+      .left-section form {
+        display: flex;
+        flex-direction: column;
+        flex-grow: 1; /* Allow the form to fill the left-section height */
+        min-height: 0;
+        padding: 20px; /* Add padding to create space between content and scrollbar */
+      }
 
-    <!-- =============  B.  MEAL-PLANNING  ================== -->
-    <form method="POST" action="plan_meals">
-      <input type="hidden" name="action" value="plan_meals">
-        <div class="card">
-          <h2>📝 Meal Planning Preferences</h2>
+      /* The scrollable-card within left-section is not needed with section scrolling */
+      .left-section .scrollable-card {
+        /* Remove styles, handled by parent .left-section */
+        padding: 0; /* Remove padding as it's on the parent */
+        box-shadow: none;
+      }
 
-          <label>Number of Days:</label>
-          <input type="number" name="days" required min="1" placeholder="e.g., 5" value="{{ preferences.days if preferences else '' }}">
+      .left-section .scrollable-card h2,
+      .left-section .scrollable-card .card-content,
+      .left-section .scrollable-card div:last-child {
+        padding: 0 0; /* Adjust padding if needed */
+      }
 
-          <label>Meals Per Day:</label>
-          <input type="number" name="meals_per_day" required min="1" placeholder="e.g., 2" value="{{ preferences.meals_per_day if preferences else '' }}">
+      /* Right Content Container */
+      .right-content-container {
+        grid-column: 2 / 3; /* Place in the second column of content-grid */
+        display: flex; /* Use flexbox to manage children */
+        flex-direction: column;
+        min-height: 0; /* Allow to shrink */
+        position: relative; /* Needed for absolute positioning of overlay */
+        background-color: white; /* Apply card background */
+        border-radius: 12px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        padding: 0; /* Remove padding from container */
+        box-sizing: border-box;
+        overflow: hidden; /* Hide overflow at this level initially */
+      }
 
-          <label>Target Calories Per Day:</label>
-          <input type="number" name="calories" step="0.01" placeholder="e.g., 1000" value="{{ preferences.calories if preferences else '' }}"  required>
+      /* Meal Planning Preferences Section */
+      #meal-preferences-section {
+        flex-grow: 1; /* Allow to take available space */
+        display: flex; /* Make it a flex container */
+        flex-direction: column;
+        min-height: 0; /* Allow to shrink */
+        overflow-y: auto; /* Make this section scrollable */
+        padding: 20px; /* Add padding to create space between content and scrollbar */
+      }
 
-          <label>Target Protein Per Day (g):</label>
-          <input type="number" name="protein" step="0.01" placeholder="e.g., 50" value="{{ preferences.protein if preferences else '' }}"  required>
+      #meal-preferences-section .card {
+        /* Card within preferences section */
+        background-color: transparent; /* Remove background */
+        box-shadow: none; /* Remove shadow */
+        border-radius: 0; /* Remove border */
+        padding: 0; /* Remove padding */
+        display: flex; /* Keep as flex */
+        flex-direction: column;
+        min-height: 0;
+      }
 
-          <label>Target Fat Per Day (g):</label>
-          <input type="number" name="fat" step="0.01" placeholder="e.g., 70" value="{{ preferences.fat if preferences else '' }}" required>
+      #meal-preferences-section .card .card-content {
+        /* Content within preferences card */
+        flex-grow: 1; /* Allow content to grow */
+        min-height: 0; /* Allow to shrink */
+        /* overflow handled by parent #meal-preferences-section */
+      }
 
-          <label>Target Carbs Per Day (g):</label>
-          <input type="number" name="carbs" step="0.01" placeholder="e.g., 100" value="{{ preferences.carbs if preferences else '' }}" required>
+      /* Results Section */
+      #results-section {
+        flex-grow: 1; /* Allow to take available space */
+        display: flex; /* Make it a flex container */
+        flex-direction: column;
+        min-height: 0; /* Allow to shrink */
+        overflow-y: auto; /* Make this section scrollable */
+        padding: 20px; /* Add padding to create space between content and scrollbar */
+      }
 
-          <label>Priority (calories/protein/fat/carbs):</label>
-          <input type="text" name="priority" placeholder="e.g., calories" value="{{ preferences.priority if preferences else '' }}" required>
+      /* Results Content within Results Section */
+      #results-section .results-content {
+        /* New div for results content */
+        display: flex; /* Make it a flex container */
+        flex-direction: column;
+        gap: 20px; /* Add gap between result sections */
+        min-height: 0; /* Allow to shrink */
+        /* overflow handled by parent #results-section */
+      }
 
-          <br><br>
-          <input type="submit" value="Plan My Meals!">
-        </div> <!-- card closes -->
-    </form>
-    <!-- ==================================================== -->
+      /* Spinner Overlay */
+      #loading-overlay {
+        position: absolute; /* Position over the content */
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(
+          255,
+          255,
+          255,
+          0.8
+        ); /* White background with opacity */
+        backdrop-filter: blur(5px); /* Apply blur effect */
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 10; /* Ensure it's above other content */
+      }
 
-      <!--load spinner-->
-      <div id="loading-spinner" style="display: none; text-align: center; margin-bottom: 20px;">
-        <img src="{{ url_for('static', filename='spinner.gif') }}" alt="Loading..." width="200">
-        <p>Planning your meals...</p>
-      </div>
-  
-      {% if selected_meals or pending_meals or proposed_meals or missing_ingredients %}
-        <div class="card">
-          {% if selected_meals and preferences.days and preferences.meals_per_day %}
-            <h2>✅ Meals Generated with Current Ingredients:</h2>
-            {% set total_needed = preferences.days * preferences.meals_per_day %}
-            {% for day_idx in range(preferences.days) %}
-              {# Calculate how many meals are in this day #}
-              {% set day_meals = [] %}
-              {% for meal_idx in range(preferences.meals_per_day) %}
-                {% set idx = day_idx * preferences.meals_per_day + meal_idx %}
-                {% if idx < selected_meals|length and idx < total_needed %}
-                  {% set _ = day_meals.append(selected_meals[idx]) %}
-                {% endif %}
-              {% endfor %}
-              {% if day_meals %}
-                <div class="day-block">
-                  <div class="day-header" onclick="toggleMeals('selected_day_{{ day_idx }}')">
-                    <h3>📅 Day {{ day_idx+1 }}</h3>
-                    <span>▶️</span>
-                  </div>
-                  <div class="meals-container" id="selected_day_{{ day_idx }}">
-                    {% for meal in day_meals %}
-                      <div class="meal-card">
-                        <h4>🍽️ Meal {{ loop.index }}: {{ meal.meal_title }}</h4>
-                        <p><strong>Ingredients:</strong></p>
-                        <ul>
-                          {% for ing, grams in meal.ingredients.items() %}
-                            <li>
-                              {{ ing.capitalize() }}: {{ grams }}
-                              {% if ing in ['milk', 'coconut milk'] %}
-                                ml
-                              {% elif ing == 'bread' %}
-                                slices
-                              {% elif ing == 'eggs' %}
-                                pieces
-                              {% else %}
-                                g
-                              {% endif %}
-                            </li>
-                          {% endfor %}
-                        </ul>
-                        <p><strong>Estimated Nutrition:</strong></p>
-                        <ul>
-                          {% for macro, amount in meal.estimated_nutrition.items() %}
-                            <li>{{ macro.capitalize() }}: {{ amount }} {% if macro == "calories" %}kcal{% else %}g{% endif %}</li>
-                          {% endfor %}
-                        </ul>
-                      </div>
-                    {% endfor %}
-                  </div>
+      #loading-overlay #loading-spinner {
+        /* Spinner container within overlay */
+        text-align: center;
+      }
+
+      /* Form elements */
+      input[type="text"],
+      input[type="number"],
+      input[type="submit"] {
+        width: calc(100% - 20px); /* Subtract padding from width */
+        padding: 10px;
+        margin-top: 5px;
+        margin-bottom: 15px;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        box-sizing: border-box;
+      }
+
+      input[type="submit"] {
+        background-color: #3498db;
+        color: white;
+        font-weight: bold;
+        border: none;
+        cursor: pointer;
+        transition: background-color 0.3s;
+      }
+
+      input[type="submit"]:hover {
+        background-color: #2980b9;
+      }
+
+      label {
+        font-weight: bold;
+      }
+
+      /* Day blocks and meal cards within results */
+      .day-block {
+        margin-top: 0; /* Remove top margin, gap handles spacing */
+        background-color: #eef6fb;
+        border-radius: 10px;
+        padding: 15px; /* Increase padding for better spacing */
+      }
+
+      .day-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        cursor: pointer;
+        background-color: #d9ebf8;
+        padding: 12px; /* Increase padding for better spacing */
+        border-radius: 8px;
+      }
+
+      .meals-container {
+        display: none;
+        margin-top: 15px; /* Increase margin for better spacing */
+      }
+
+      .meal-card {
+        background-color: #f8f9fa;
+        padding: 20px; /* Increase padding for better spacing */
+        margin-top: 15px;
+        margin-bottom: 15px;
+        border-radius: 10px;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+      }
+
+      /* How to Use Link */
+      .how-to-use-link {
+        position: absolute;
+        top: 20px;
+        right: 30px; /* Position on the right side */
+        left: auto; /* Remove left positioning */
+        color: #3498db;
+        text-decoration: none;
+        font-weight: bold;
+        z-index: 100;
+        background: white;
+        padding: 8px 15px;
+        border-radius: 20px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+      }
+
+      .how-to-use-link:hover {
+        background: #3498db;
+        color: white;
+      }
+
+      /* Modal Dialog */
+      .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(5px);
+        z-index: 1000;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .modal-content {
+        background: white;
+        width: 80%;
+        max-width: 800px;
+        max-height: 80vh;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        position: relative;
+        overflow-y: auto;
+        padding: 30px;
+      }
+
+      .modal-close {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        font-size: 24px;
+        color: #666;
+        cursor: pointer;
+        width: 30px;
+        height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        transition: all 0.3s ease;
+      }
+
+      .modal-close:hover {
+        background: #f0f0f0;
+        color: #333;
+      }
+
+      /* Guide Content Styles */
+      .guide-content {
+        color: #333;
+      }
+
+      .guide-content h2 {
+        color: #2c3e50;
+        margin-bottom: 30px;
+        text-align: center;
+      }
+
+      .guide-section {
+        margin-bottom: 30px;
+      }
+
+      .guide-section h3 {
+        color: #3498db;
+        margin-bottom: 15px;
+      }
+
+      .guide-section p {
+        margin-bottom: 15px;
+        line-height: 1.6;
+      }
+
+      .guide-section ul,
+      .guide-section ol {
+        margin-left: 20px;
+        margin-bottom: 15px;
+      }
+
+      .guide-section li {
+        margin-bottom: 10px;
+        line-height: 1.6;
+      }
+
+      .guide-section strong {
+        color: #2c3e50;
+      }
+    </style>
+    <script>
+      function toggleMeals(dayId) {
+        var mealsContainer = document.getElementById(dayId);
+        if (
+          mealsContainer.style.display === "none" ||
+          mealsContainer.style.display === ""
+        ) {
+          mealsContainer.style.display = "block";
+        } else {
+          mealsContainer.style.display = "none";
+        }
+      }
+    </script>
+  </head>
+
+  <body>
+    <div class="main-container">
+      <h1 class="page-title">Assistant Cheffie Meal Planner 🍳</h1>
+
+      <div class="content-grid">
+        <!-- Left Column -->
+        <div class="left-section">
+          <form method="POST">
+            <input type="hidden" name="action" value="save_fridge" />
+            <div class="scrollable-card">
+              <h2>🧊 Fridge Contents</h2>
+              <div class="card-content">
+                <p>Edit the amounts (grams) or leave empty if unavailable.</p>
+                {% for ingredient, amount in fridge.items() %}
+                <div>
+                  <label>
+                    {{ ingredient.capitalize() }} {% if ingredient in ['milk',
+                    'coconut milk'] %} (ml) {% elif ingredient in ['bread',
+                    'eggs'] %} {% if ingredient == 'bread' %} (slices) {% else
+                    %} (pieces) {% endif %} {% else %} (g) {% endif %}
+                  </label>
+                  <input type="number" name="fridge_{{ ingredient }}" value="{{
+                  amount }}" step="1" min="0" {% if ingredient in ['bread',
+                  'eggs'] %} step="1" {% else %} step="0.1" {% endif %}>
                 </div>
-              {% endif %}
-            {% endfor %}
-          {% endif %}
+                {% endfor %}
+              </div>
+              <div style="display: flex; gap: 10px; margin-top: 10px">
+                <button
+                  type="submit"
+                  style="
+                    flex: 1;
+                    padding: 10px;
+                    background: #3498db;
+                    color: #fff;
+                    border: none;
+                    border-radius: 8px;
+                    font-weight: bold;
+                    cursor: pointer;
+                  "
+                >
+                  💾 Save Fridge Contents
+                </button>
 
-          {% if missing_ingredients %}
-            <h2>⚠️ Not enough meals could be made. Missing Ingredients:</h2>
-            <ul>
-              {% for ing, grams in missing_ingredients.items() %}
-                <li>🛒 {{ ing.capitalize() }}: {{ grams | round(2) }}
-                  {% if ing in ['milk', 'coconut milk'] %}
-                    ml
-                  {% elif ing == 'bread' %}
-                    slices
-                  {% elif ing == 'eggs' %}
-                    pieces
-                  {% else %}
-                    g
-                  {% endif %}
-                  needed
-                </li>
-              {% endfor %}
-            </ul>
-          {% endif %}
+                <button
+                  type="button"
+                  onclick="resetFridge()"
+                  style="
+                    flex: 1;
+                    padding: 10px;
+                    background: #e74c3c;
+                    color: #fff;
+                    border: none;
+                    border-radius: 8px;
+                    font-weight: bold;
+                    cursor: pointer;
+                  "
+                >
+                  🔄 Reset to Default
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
 
-          {% if pending_meals and preferences.days and preferences.meals_per_day %}
-            <h2>🛒 Meals Possible After Shopping:</h2>
-            {% set total_needed = preferences.days * preferences.meals_per_day %}
-            {% for day_idx in range(preferences.days) %}
+        <!-- Right Column - Combined Preferences and Results -->
+        <div class="right-content-container">
+          <!-- Meal Planning Preferences Section -->
+          <div id="meal-preferences-section">
+            <div class="card">
+              <form method="POST" action="plan_meals">
+                <input type="hidden" name="action" value="plan_meals" />
+                <h2>📝 Meal Planning Preferences</h2>
+                <div class="card-content">
+                  <label>Number of Days:</label>
+                  <input
+                    type="number"
+                    name="days"
+                    required
+                    min="1"
+                    placeholder="e.g., 5"
+                    value="{{ preferences.days if preferences else '' }}"
+                  />
+
+                  <label>Meals Per Day:</label>
+                  <input
+                    type="number"
+                    name="meals_per_day"
+                    required
+                    min="1"
+                    placeholder="e.g., 2"
+                    value="{{ preferences.meals_per_day if preferences else '' }}"
+                  />
+
+                  <label>Target Calories Per Day:</label>
+                  <input
+                    type="number"
+                    name="calories"
+                    step="0.01"
+                    placeholder="e.g., 1000"
+                    value="{{ preferences.calories if preferences else '' }}"
+                    required
+                  />
+
+                  <label>Target Protein Per Day (g):</label>
+                  <input
+                    type="number"
+                    name="protein"
+                    step="0.01"
+                    placeholder="e.g., 50"
+                    value="{{ preferences.protein if preferences else '' }}"
+                    required
+                  />
+
+                  <label>Target Fat Per Day (g):</label>
+                  <input
+                    type="number"
+                    name="fat"
+                    step="0.01"
+                    placeholder="e.g., 70"
+                    value="{{ preferences.fat if preferences else '' }}"
+                    required
+                  />
+
+                  <label>Target Carbs Per Day (g):</label>
+                  <input
+                    type="number"
+                    name="carbs"
+                    step="0.01"
+                    placeholder="e.g., 100"
+                    value="{{ preferences.carbs if preferences else '' }}"
+                    required
+                  />
+
+                  <label>Priority (calories/protein/fat/carbs):</label>
+                  <input
+                    type="text"
+                    name="priority"
+                    placeholder="e.g., calories"
+                    value="{{ preferences.priority if preferences else '' }}"
+                    required
+                  />
+                </div>
+                <input type="submit" value="Plan My Meals!" />
+              </form>
+            </div>
+          </div>
+
+          <!-- Results Section -->
+          <div id="results-section" style="display: none">
+            <div class="results-content">
+              {% if selected_meals or pending_meals or proposed_meals or
+              missing_ingredients %} {% if selected_meals and preferences.days
+              and preferences.meals_per_day %}
+              <h2>✅ Meals Generated with Current Ingredients:</h2>
+              {% set total_needed = preferences.days * preferences.meals_per_day
+              %} {% for day_idx in range(preferences.days) %} {% set day_meals =
+              [] %} {% for meal_idx in range(preferences.meals_per_day) %} {%
+              set idx = day_idx * preferences.meals_per_day + meal_idx %} {% if
+              idx < selected_meals|length and idx < total_needed %} {% set _ =
+              day_meals.append(selected_meals[idx]) %} {% endif %} {% endfor %}
+              {% if day_meals %}
               <div class="day-block">
-                <div class="day-header" onclick="toggleMeals('pending_day_{{ day_idx }}')">
+                <div
+                  class="day-header"
+                  onclick="toggleMeals('selected_day_{{ day_idx }}')"
+                >
+                  <h3>📅 Day {{ day_idx+1 }}</h3>
+                  <span>▶️</span>
+                </div>
+                <div class="meals-container" id="selected_day_{{ day_idx }}">
+                  {% for meal in day_meals %}
+                  <div class="meal-card">
+                    <h4>🍽️ Meal {{ loop.index }}: {{ meal.meal_title }}</h4>
+                    <p><strong>Ingredients:</strong></p>
+                    <ul>
+                      {% for ing, grams in meal.ingredients.items() %}
+                      <li>
+                        {{ ing.capitalize() }}: {{ grams }} {% if ing in
+                        ['milk', 'coconut milk'] %} ml {% elif ing == 'bread' %}
+                        slices {% elif ing == 'eggs' %} pieces {% else %} g {%
+                        endif %}
+                      </li>
+                      {% endfor %}
+                    </ul>
+                    <p><strong>Estimated Nutrition:</strong></p>
+                    <ul>
+                      {% for macro, amount in meal.estimated_nutrition.items()
+                      %}
+                      <li>
+                        {{ macro.capitalize() }}: {{ amount }} {% if macro ==
+                        "calories" %}kcal{% else %}g{% endif %}
+                      </li>
+                      {% endfor %}
+                    </ul>
+                  </div>
+                  {% endfor %}
+                </div>
+              </div>
+              {% endif %} {% endfor %} {% endif %} {% if missing_ingredients %}
+              <h2>⚠️ Not enough meals could be made. Missing Ingredients:</h2>
+              <ul>
+                {% for ing, grams in missing_ingredients.items() %}
+                <li>
+                  🛒 {{ ing.capitalize() }}: {{ grams | round(2) }} {% if ing in
+                  ['milk', 'coconut milk'] %} ml {% elif ing == 'bread' %}
+                  slices {% elif ing == 'eggs' %} pieces {% else %} g {% endif
+                  %} needed
+                </li>
+                {% endfor %}
+              </ul>
+              {% endif %} {% if pending_meals and preferences.days and
+              preferences.meals_per_day %}
+              <h2>🛒 Meals Possible After Shopping:</h2>
+              {% set total_needed = preferences.days * preferences.meals_per_day
+              %} {% for day_idx in range(preferences.days) %}
+              <div class="day-block">
+                <div
+                  class="day-header"
+                  onclick="toggleMeals('pending_day_{{ day_idx }}')"
+                >
                   <h3>📅 Day {{ day_idx+1 }}</h3>
                   <span>▶️</span>
                 </div>
                 <div class="meals-container" id="pending_day_{{ day_idx }}">
-                  {% for meal_idx in range(preferences.meals_per_day) %}
-                    {% set idx = day_idx * preferences.meals_per_day + meal_idx %}
-                    {% if idx < pending_meals|length and idx < total_needed %}
-                      {% set match = pending_meals[idx] %}
-                      <div class="meal-card">
-                        <h4>🍽️ Meal {{ meal_idx+1 }}: {{ match.adjusted_recipe.title }} (Score: {{ match.final_score | round(2) }})</h4>
-                        <p><strong>Servings Needed:</strong> {{ match.adjusted_recipe.servings_needed }}</p>
-                        <p><strong>Total Calories:</strong> {{ match.adjusted_recipe.total_calories }} kcal</p>
-                        <p><strong>Adjusted Macros:</strong></p>
-                        <ul>
-                          {% for macro, amount in match.adjusted_recipe.adjusted_macros.items() %}
-                            <li>{{ macro.capitalize() }}: {{ amount }} {% if macro == "calories" %}kcal{% else %}g{% endif %}</li>
-                          {% endfor %}
-                        </ul>
-                      </div>
-                    {% endif %}
+                  {% for meal_idx in range(preferences.meals_per_day) %} {% set
+                  idx= day_idx * preferences.meals_per_day + meal_idx %} {% if
+                  idx < pending_meals|length and idx < total_needed %} {% set
+                  match = pending_meals[idx] %}
+                  <div class="meal-card">
+                    <h4>
+                      🍽️ Meal {{ meal_idx+1 }}: {{ match.adjusted_recipe.title
+                      }} (Score: {{ match.final_score | round(2) }})
+                    </h4>
+                    <p>
+                      <strong>Servings Needed:</strong> {{
+                      match.adjusted_recipe.servings_needed }}
+                    </p>
+                    <p>
+                      <strong>Total Calories:</strong> {{
+                      match.adjusted_recipe.total_calories }} kcal
+                    </p>
+                    <p><strong>Adjusted Macros:</strong></p>
+                    <ul>
+                      {% for macro, amount in
+                      match.adjusted_recipe.adjusted_macros.items() %}
+                      <li>
+                        {{ macro.capitalize() }}: {{ amount }} {% if macro ==
+                        "calories" %}kcal{% else %}g{% endif %}
+                      </li>
+                      {% endfor %}
+                    </ul>
+                  </div>
+                  {% endif %} {% endfor %}
+                </div>
+              </div>
+              {% endfor %} {% endif %} {% if proposed_meals and preferences.days
+              and preferences.meals_per_day %}
+              <h2>
+                🤖 Assistant Cheffie's Proposed Meals Based On Your Available
+                Ingredients:
+              </h2>
+              {% set total_needed = preferences.days * preferences.meals_per_day
+              %} {% set filled_count = selected_meals|length %} {% for day_idx
+              in range(preferences.days) %} {# Gather LLM meals for this day #}
+              {% set day_llm_meals = [] %} {% for meal_idx in
+              range(preferences.meals_per_day) %} {% set idx = day_idx *
+              preferences.meals_per_day + meal_idx %} {% set llm_idx = idx -
+              filled_count %} {% if idx >= filled_count and llm_idx <
+              proposed_meals|length and idx < total_needed %} {% set _ =
+              day_llm_meals.append(proposed_meals[llm_idx]) %} {% endif %} {%
+              endfor %} {% if day_llm_meals %}
+              <div class="day-block">
+                <div
+                  class="day-header"
+                  onclick="toggleMeals('proposed_day_{{ day_idx }}')"
+                >
+                  <h3>📅 Day {{ day_idx+1 }}</h3>
+                  <span>▶️</span>
+                </div>
+                <div class="meals-container" id="proposed_day_{{ day_idx }}">
+                  {% for meal in day_llm_meals %}
+                  <div class="meal-card">
+                    <h4>🍽️ Meal {{ loop.index }}: {{ meal.meal_title }}</h4>
+                    <p><strong>Ingredients:</strong></p>
+                    <ul>
+                      {% for ing, grams in meal.ingredients.items() %}
+                      <li>
+                        {{ ing.capitalize() }}: {{ grams }} {% if ing in
+                        ['milk', 'coconut milk'] %} ml {% elif ing == 'bread' %}
+                        slices {% elif ing == 'eggs' %} pieces {% else %} g {%
+                        endif %}
+                      </li>
+                      {% endfor %}
+                    </ul>
+                    <p><strong>Estimated Nutrition:</strong></p>
+                    <ul>
+                      <li>
+                        Calories: {{ meal.estimated_nutrition.calories }} kcal
+                      </li>
+                      <li>Protein: {{ meal.estimated_nutrition.protein }} g</li>
+                      <li>Fat: {{ meal.estimated_nutrition.fat }} g</li>
+                      <li>Carbs: {{ meal.estimated_nutrition.carbs }} g</li>
+                    </ul>
+                  </div>
                   {% endfor %}
                 </div>
               </div>
-            {% endfor %}
-          {% endif %}
+              {% endif %} {% endfor %} {% endif %} {% endif %}
+            </div>
+          </div>
 
-          {% if proposed_meals and preferences.days and preferences.meals_per_day %}
-            <h2>🤖 Assistant Cheffie's Proposed Meals Based On Your Available Ingredients:</h2>
-            {% set total_needed = preferences.days * preferences.meals_per_day %}
-            {% set filled_count = selected_meals|length %}
-            {% for day_idx in range(preferences.days) %}
-              {# Gather LLM meals for this day #}
-              {% set day_llm_meals = [] %}
-              {% for meal_idx in range(preferences.meals_per_day) %}
-                {% set idx = day_idx * preferences.meals_per_day + meal_idx %}
-                {% set llm_idx = idx - filled_count %}
-                {% if idx >= filled_count and llm_idx < proposed_meals|length and idx < total_needed %}
-                  {% set _ = day_llm_meals.append(proposed_meals[llm_idx]) %}
-                {% endif %}
-              {% endfor %}
-              {% if day_llm_meals %}
-                <div class="day-block">
-                  <div class="day-header" onclick="toggleMeals('proposed_day_{{ day_idx }}')">
-                    <h3>📅 Day {{ day_idx+1 }}</h3>
-                    <span>▶️</span>
-                  </div>
-                  <div class="meals-container" id="proposed_day_{{ day_idx }}">
-                    {% for meal in day_llm_meals %}
-                      <div class="meal-card">
-                        <h4>🍽️ Meal {{ loop.index }}: {{ meal.meal_title }}</h4>
-                        <p><strong>Ingredients:</strong></p>
-                        <ul>
-                          {% for ing, grams in meal.ingredients.items() %}
-                            <li>
-                              {{ ing.capitalize() }}: {{ grams }}
-                              {% if ing in ['milk', 'coconut milk'] %}
-                                ml
-                              {% elif ing == 'bread' %}
-                                slices
-                              {% elif ing == 'eggs' %}
-                                pieces
-                              {% else %}
-                                g
-                              {% endif %}
-                            </li>
-                          {% endfor %}
-                        </ul>
-                        <p><strong>Estimated Nutrition:</strong></p>
-                        <ul>
-                          <li>Calories: {{ meal.estimated_nutrition.calories }} kcal</li>
-                          <li>Protein: {{ meal.estimated_nutrition.protein }} g</li>
-                          <li>Fat: {{ meal.estimated_nutrition.fat }} g</li>
-                          <li>Carbs: {{ meal.estimated_nutrition.carbs }} g</li>
-                        </ul>
-                      </div>
-                    {% endfor %}
-                  </div>
-                </div>
-              {% endif %}
-            {% endfor %}
-          {% endif %}
-        </div> <!-- card closes -->
-      {% endif %}
+          <!-- Spinner Overlay -->
+          <div id="loading-overlay" style="display: none">
+            <div id="loading-spinner">
+              <img
+                src="{{ url_for('static', filename='spinner.gif') }}"
+                alt="Loading..."
+                width="200"
+              />
+              <p>Planning your meals...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
 
-</div> <!-- container closes -->
+    <a href="#" class="how-to-use-link" onclick="openGuide(); return false;"
+      >How to Use? 📖</a
+    >
 
-<!-- Update the JavaScript at the bottom of the file -->
-<script>
+    <div class="modal-overlay" id="guideModal">
+      <div class="modal-content">
+        <span class="modal-close" onclick="closeGuide()">&times;</span>
+        {% include 'how_to_use.html' %}
+      </div>
+    </div>
 
-  function resetFridge() {
-    if (confirm('Are you sure you want to reset all ingredients to 0?')) {
-        const inputs = document.querySelectorAll('input[type="number"]');
-        inputs.forEach(input => input.value = 0);
-        document.querySelector('form').submit();
-    }
-  }
+    <script>
+      function resetFridge() {
+        if (confirm("Are you sure you want to reset all ingredients to 0?")) {
+          const inputs = document.querySelectorAll('input[type="number"]');
+          inputs.forEach((input) => (input.value = 0));
+          document.querySelector("form").submit();
+        }
+      }
 
-  document.addEventListener('DOMContentLoaded', function() {
-      const mealPlanningForm = document.querySelector('form[action="plan_meals"]');
-      const spinner = document.getElementById('loading-spinner');
+      document.addEventListener("DOMContentLoaded", function () {
+        const mealPlanningForm = document.querySelector(
+          'form[action="plan_meals"]'
+        );
+        const mealPreferencesSection = document.getElementById(
+          "meal-preferences-section"
+        );
+        const resultsSection = document.getElementById("results-section");
+        const loadingOverlay = document.getElementById("loading-overlay");
+        const resultsContent = document.querySelector(
+          "#results-section .results-content"
+        );
 
-      if (mealPlanningForm) {
-          mealPlanningForm.addEventListener('submit', function(e) {
-              e.preventDefault();
-              
-              // Show spinner
-              spinner.style.display = 'block';
-              
-              // Get form data
-              const formData = new FormData(this);
-              
-              // Submit form
-              fetch(window.location.href, {
-                  method: 'POST',
-                  body: formData
+        if (mealPlanningForm) {
+          mealPlanningForm.addEventListener("submit", function (e) {
+            e.preventDefault();
+
+            // Show loading overlay and hide preferences/results
+            mealPreferencesSection.style.display = "none";
+            resultsSection.style.display = "none";
+            loadingOverlay.style.display = "flex"; // Use flex to center spinner
+
+            // Get form data
+            const formData = new FormData(this);
+
+            // Submit form
+            fetch(window.location.href, {
+              method: "POST",
+              body: formData,
+            })
+              .then((response) => {
+                if (!response.ok) {
+                  throw new Error("Network response was not ok");
+                }
+                return response.text();
               })
-              .then(response => {
-                  if (!response.ok) {
-                      throw new Error('Network response was not ok');
+              .then((html) => {
+                // Create a temporary div to parse the HTML
+                const tempDiv = document.createElement("div");
+                tempDiv.innerHTML = html;
+
+                // Extract the new results content
+                const newResultsContent = tempDiv.querySelector(
+                  "#results-section .results-content"
+                ).innerHTML;
+
+                // Update the results section and show it
+                resultsContent.innerHTML = newResultsContent; // Update the content
+                loadingOverlay.style.display = "none"; // Hide loading
+                resultsSection.style.display = "flex"; // Show results (use flex to maintain layout)
+
+                // Restore form values (optional, based on desired UX)
+                const newForm = document.querySelector(
+                  '#meal-preferences-section form[action="plan_meals"]'
+                );
+                if (newForm) {
+                  const formData = new FormData(mealPlanningForm);
+                  for (let [key, value] of formData.entries()) {
+                    const input = newForm.querySelector(`[name="${key}"]`);
+                    if (input) {
+                      // Only restore if the input exists in the new form and has a value
+                      if (input.value !== undefined) input.value = value;
+                    }
                   }
-                  return response.text();
+                }
               })
-              .then(html => {
-                  // Create a temporary div to parse the HTML
-                  const tempDiv = document.createElement('div');
-                  tempDiv.innerHTML = html;
-                  
-                  // Update the page content
-                  document.documentElement.innerHTML = html;
-                  
-                  // Restore form values
-                  const newForm = document.querySelector('form[action="plan_meals"]');
-                  if (newForm) {
-                      const formData = new FormData(mealPlanningForm);
-                      for (let [key, value] of formData.entries()) {
-                          const input = newForm.querySelector(`[name="${key}"]`);
-                          if (input) {
-                              input.value = value;
-                          }
-                      }
-                  }
-              })
-              .catch(error => {
-                  console.error('Error:', error);
-                  spinner.style.display = 'none';
-                  alert('An error occurred while planning meals. Please try again.');
+              .catch((error) => {
+                console.error("Error:", error);
+                loadingOverlay.style.display = "none"; // Hide loading
+                mealPreferencesSection.style.display = "flex"; // Show preferences again (use flex)
+                alert(
+                  "An error occurred while planning meals. Please try again."
+                );
               });
           });
+        }
+
+        // Initial state setup: hide results if they are present on page load
+        // This handles cases where the page is reloaded with results already rendered
+        if (resultsContent && resultsContent.children.length > 0) {
+          mealPreferencesSection.style.display = "none";
+          resultsSection.style.display = "flex"; // Show results
+          loadingOverlay.style.display = "none"; // Ensure spinner is hidden
+        } else {
+          // If no results content, ensure preferences is shown and results/spinner hidden
+          mealPreferencesSection.style.display = "flex"; // Show preferences
+          resultsSection.style.display = "none";
+          loadingOverlay.style.display = "none";
+        }
+      });
+
+      function openGuide() {
+        const modal = document.getElementById("guideModal");
+        modal.style.display = "flex";
+        document.body.style.overflow = "hidden"; // Prevent background scrolling
       }
-  });
-</script>
 
+      function closeGuide() {
+        const modal = document.getElementById("guideModal");
+        modal.style.display = "none";
+        document.body.style.overflow = ""; // Restore scrolling
+      }
 
-</body>
+      // Close modal when clicking outside
+      window.onclick = function (event) {
+        const modal = document.getElementById("guideModal");
+        if (event.target === modal) {
+          closeGuide();
+        }
+      };
+
+      // Close modal with Escape key
+      document.addEventListener("keydown", function (event) {
+        if (event.key === "Escape") {
+          closeGuide();
+        }
+      });
+    </script>
+  </body>
 </html>
