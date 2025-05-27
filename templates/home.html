@@ -122,11 +122,29 @@
       
         {% for ingredient, amount in fridge.items() %}
           <div>
-            <label>{{ ingredient.capitalize() }} (g):</label>
+            <label>
+              {{ ingredient.capitalize() }}
+              {% if ingredient in ['milk', 'coconut milk'] %}
+                (ml)
+              {% elif ingredient in ['bread', 'eggs'] %}
+                {% if ingredient == 'bread' %}
+                  (slices)
+                {% else %}
+                  (pieces)
+                {% endif %}
+              {% else %}
+                (g)
+              {% endif %}
+            </label>
             <input  type="number"
                     name="fridge_{{ ingredient }}"
                     value="{{ amount }}"
-                    step="1" min="0">
+                    step="1" min="0"
+                    {% if ingredient in ['bread', 'eggs'] %}
+                    step="1"
+                    {% else %}
+                    step="0.1"
+                    {% endif %}>
           </div>
         {% endfor %}
       
@@ -216,7 +234,18 @@
                         <p><strong>Ingredients:</strong></p>
                         <ul>
                           {% for ing, grams in meal.ingredients.items() %}
-                            <li>{{ ing.capitalize() }}: {{ grams }}g</li>
+                            <li>
+                              {{ ing.capitalize() }}: {{ grams }}
+                              {% if ing in ['milk', 'coconut milk'] %}
+                                ml
+                              {% elif ing == 'bread' %}
+                                slices
+                              {% elif ing == 'eggs' %}
+                                pieces
+                              {% else %}
+                                g
+                              {% endif %}
+                            </li>
                           {% endfor %}
                         </ul>
                         <p><strong>Estimated Nutrition:</strong></p>
@@ -237,7 +266,18 @@
             <h2>⚠️ Not enough meals could be made. Missing Ingredients:</h2>
             <ul>
               {% for ing, grams in missing_ingredients.items() %}
-                <li>🛒 {{ ing.capitalize() }}: {{ grams | round(2) }}g needed</li>
+                <li>🛒 {{ ing.capitalize() }}: {{ grams | round(2) }}
+                  {% if ing in ['milk', 'coconut milk'] %}
+                    ml
+                  {% elif ing == 'bread' %}
+                    slices
+                  {% elif ing == 'eggs' %}
+                    pieces
+                  {% else %}
+                    g
+                  {% endif %}
+                  needed
+                </li>
               {% endfor %}
             </ul>
           {% endif %}
@@ -301,7 +341,18 @@
                         <p><strong>Ingredients:</strong></p>
                         <ul>
                           {% for ing, grams in meal.ingredients.items() %}
-                            <li>{{ ing.capitalize() }}: {{ grams }}g</li>
+                            <li>
+                              {{ ing.capitalize() }}: {{ grams }}
+                              {% if ing in ['milk', 'coconut milk'] %}
+                                ml
+                              {% elif ing == 'bread' %}
+                                slices
+                              {% elif ing == 'eggs' %}
+                                pieces
+                              {% else %}
+                                g
+                              {% endif %}
+                            </li>
                           {% endfor %}
                         </ul>
                         <p><strong>Estimated Nutrition:</strong></p>

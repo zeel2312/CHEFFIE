@@ -3,8 +3,18 @@ from meal_planner import load_fridge, save_fridge, build_meal_plan, complete_mea
 from cbr_retrieval import load_recipes
 import json, os
 
+def get_ingredient_unit(ingredient):
+    units = {
+        'milk': 'ml',
+        'coconut milk': 'ml',
+        'bread': 'slices',
+        'eggs': 'pieces',
+    }
+    return units.get(ingredient.lower(), 'g')
+
 
 app = Flask(__name__)
+app.jinja_env.globals.update(get_ingredient_unit=get_ingredient_unit)
 recipes = load_recipes()
 
 @app.route("/", methods=["GET", "POST"])
