@@ -7,27 +7,54 @@ from collections import defaultdict
 from cbr_retrieval import load_recipes, rank_recipes
 from llm import call_llm_for_meal_completion
 
+REDIS_URL = os.environ.get("REDIS_URL")
+_redis_client = None
+if REDIS_URL:
+    try:
+        import redis
+        _redis_client = redis.from_url(REDIS_URL, decode_responses=True)
+    except Exception as e:
+        print("Redis unavailable, falling back to file storage:", e)
+        _redis_client = None
+
+def _load_default_fridge():
+    with open("data/default_fridge.json", "r") as f:
+        return json.load(f)
+
 # Fridge Management
 # def load_fridge(path="data/fridge.json"):
 #     with open(path, "r") as f:
 #         return json.load(f)
 def load_fridge(path="data/fridge.json"):
+    if _redis_client:
+        data = _redis_client.get("fridge")
+        if data:
+            try:
+                return json.loads(data)
+            except json.JSONDecodeError:
+                pass
+        # Initialize if missing or invalid
+        fridge = _load_default_fridge()
+        save_fridge(fridge, path)
+        return fridge
+    # File fallback (local dev)
     try:
         with open(path, "r") as f:
             return json.load(f)
     except (FileNotFoundError, json.JSONDecodeError):
-        # If fridge.json doesn't exist or is invalid, load default template
-        with open("data/default_fridge.json", "r") as f:
-            default_fridge = json.load(f)
-            # Save the default template as the new fridge.json
-            save_fridge(default_fridge, path)
-            return default_fridge
+        fridge = _load_default_fridge()
+        save_fridge(fridge, path)
+        return fridge
 
 def save_fridge(fridge, path="data/fridge.json"):
-    # print("Saving fridge to:", os.path.abspath(path))
+    if _redis_client:
+        _redis_client.set("fridge", json.dumps(fridge))
+        # Optional: debug print
+        print("Fridge saved to Redis. Size:", len(json.dumps(fridge)))
+        return
+    # File fallback (local dev)
     with open(path, "w") as f:
         json.dump(fridge, f, indent=2)
-    # Immediately read back and print
     with open(path, "r") as f:
         print("File contents after save:", f.read())
 
